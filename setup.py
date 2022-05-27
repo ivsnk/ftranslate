@@ -6,21 +6,28 @@ COMMON_FILE = 'common.py'
 GIT_IGNORE = '.gitignore'
 GIT_IGNORE_HIDDEN_FILES = '# Hidden files for application'
 REQUIREMENTS = 'requirements.txt'
-YA_TRANSLATE_HOST = 'https://translate.yandex.net'
-YA_TRANSLATE_PATH = '/api/v1.5/tr.json/translate'
-YA_GET_LANGS_PATH = '/api/v1.5/tr.json/getLangs'
+YA_TRANSLATE_HOST = 'https://translate.api.cloud.yandex.net'
+YA_TRANSLATE_PATH = 'translate/v2/translate'
+YA_GET_LANGS_PATH = '/translate/v2/languages'
 
 
-def check_token(token):
+def check_token(iam_token, folder_id):
     import requests
 
     resp = requests.post(
-        f'{YA_TRANSLATE_HOST}{YA_GET_LANGS_PATH}?key={token}&ui=en'
+        f'{YA_TRANSLATE_HOST}{YA_GET_LANGS_PATH}',
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {iam_token}',
+        },
+        json={
+            'folderId': folder_id
+        }
     )
 
     if resp.status_code != 200:
         print(f'**** token check response code: {resp.status_code}')
-        print(resp.content)
+        print(resp.content.decode('utf-8'))
     return resp.status_code == 200
 
 
@@ -54,13 +61,14 @@ def generate_common_file(token_file):
             file=f
         )
         print(
-            '\n\ndef get_auth_token(): '
-            'return open(AUTH_FILE, \'r\').readline()',
+            '\n\ndef get_auth_params():\n'
+            '    params = open(AUTH_FILE, \'r\').readlines()\n'
+            '    return {\'iam_token\': params[0], \'folder_id\': params[1]}',
             file=f
         )
 
 
-def update_auth_token_file(token_file, auth_token):
+def update_auth_token_file(token_file, iam_auth_token, folder_id):
     if os.path.exists(token_file):
         code = input(
             'This change will rewrite file with auth token,'
@@ -70,7 +78,7 @@ def update_auth_token_file(token_file, auth_token):
             print('Auth token was not updated')
             return
     with open(token_file, 'w') as f:
-        print(auth_token, file=f, end='')
+        print(iam_auth_token, folder_id, file=f, sep='\n', end='')
 
 
 if __name__ == '__main__':
@@ -79,13 +87,14 @@ if __name__ == '__main__':
     except:
         pass
     project_dir = os.getcwd()
-    auth_token = input('Input auth token (yandex api token): ').strip()
-    if not check_token(auth_token):
-        print("Invalid auth token")
+    iam_auth_token = input('Input auth token (yandex iam token): ').strip()
+    folder_id = input('Input folder_id (yandex cloud): ').strip()
+    if not check_token(iam_auth_token, folder_id):
+        print('Invalid auth tokens')
         exit(1)
 
     token_file = f'{project_dir}/{AUTH_FILE}'
-    update_auth_token_file(token_file, auth_token)
+    update_auth_token_file(token_file, iam_auth_token, folder_id)
 
     generate_common_file(token_file)
 
