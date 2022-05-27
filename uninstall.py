@@ -4,7 +4,10 @@ import os
 
 
 if __name__ == '__main__':
-    code = input(f'Are you sure to delete {setup.COMMON_FILE} and {setup.AUTH_FILE} (yes/no fingerpring)?: ')
+    code = input(
+        f'Are you sure of deleting {setup.COMMON_FILE}'
+        ' and {setup.AUTH_FILE} (yes/no fingerpring)?: '
+    )
     if code == 'yes':
         try:
             os.remove(setup.COMMON_FILE)
